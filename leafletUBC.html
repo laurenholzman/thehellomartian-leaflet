@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Leaflet Exercise</title>
+    <meta charset="utf-8" />
+
+    <!-- Leaflet styles and code. Place in the <head></head> element. -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+
+    <!-- jQuery is a library that simplifies many things in JavaScript. 
+	     We'll use it to retrieve data from the web. -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+  
+  </head>
+  <body>
+    <div id="mapid" style="width: 600px; height: 400px;"></div>
+    <!-- Our web map will get placed into this div element -->
+
+    <div id="controls" style="margin: 15px;">
+      <button id="showAllBuildingsButton">Show All Buildings</button>
+
+      <span style="display:inline-block; width: 20px"></span>
+      <input
+        type="text"
+        id="findBuildingTextEntry"
+        placeholder="building name"
+      />
+      <button id="findBuildingButton">Find</button>
+      <span style="display:inline-block; width: 20px"></span>
+      <!-- creates a select menu with the options for building condition -->
+      <a font-size="8px"> Building Condition: </a>
+      <select name="fruits" id="bldg_cond">
+        <option value="">--select--</option>
+        <option value="good">Good</option>
+        <option value="fair">Fair</option>
+        <option value="poor">Poor</option>
+        <option value="critical">Critical</option>
+      </select>
+    </div>
+
+    <script>
+
+            // Make a Leaflet map with L.map().
+            // Store the map in the variable 'map'.
+            // "mapid" is the 'id' of the DOM element to contain the map.
+            var map = L.map('mapid',
+                            {
+              								center: [49.265637, -123.256113],
+              								zoom: 15
+            								}  // this object holds map options
+                      );
+
+          var topoTiles = L.tileLayer(
+              								'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+                              {
+          										maxZoom: 17,
+          										attribution: 'Basemap data: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Basemap style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+          									}
+          								).addTo(map);
+
+            
+
+
+            var buildingOptions = {
+            fillColor:"#007800",
+            weight: 0.5,
+
+
+          };
+
+            var buildingFilteredOptions = {
+
+          };
+
+            function onEachBuilding(feature, layer) {
+               // does this building even have a property named NAME?
+               if (feature.properties && feature.properties.NAME ) {
+                  layer.bindTooltip(feature.properties.NAME);
+                 
+               }
+            }
+
+            function buildingToLayer(feature, latlng) {
+      buildingOptionsToUse = buildingOptions;
+
+              return
+                buildingOptionsToUse
+              //This isn't really needed but it gave an error when I just tried to put buildingOptionsToUse as the style. I think it's because it needs to be dependent on the item in the dataset (even though I'm returning a constant value)
+
+            }
+
+            function buildingsToFilter (feature, layer) {
+              if(buildingNamesToFilter === "" && buildingConditionsToFilter === "" ) { 
+                
+                return true;
+               //draw everything when you don't have either of the two filters active
+              }
+              else if ((feature.properties && feature.properties.NAME) && buildingNamesToFilter !== "") {
+               // when you have a newly nonempty textbox (ie someone pressed "find" after changing the building condition)
+               
+                return feature.properties.NAME.toLowerCase().includes(buildingNamesToFilter.toLowerCase());
+          		//ignore uppercase/lowercase differences.
+              }
+              else if ((feature.properties && feature.properties.BLDG_CONDITION) && buildingConditionsToFilter !== "") {
+                
+               //when something on the dropdown menu is newly selected
+                return feature.properties.BLDG_CONDITION.toLowerCase()===buildingConditionsToFilter.toLowerCase();
+          		//ignore uppercase/lowercase differences.
+              } else {
+                return false;
+                //don't display bad entries
+              }
+            }
+
+          	var lastLayerAdded = {};
+
+            function addBuildings() {
+              if(map.hasLayer(lastLayerAdded)){  // reset the map layers if relevant.
+                map.removeLayer(lastLayerAdded);
+              }
+              lastLayerAdded = L.geoJSON(buildingGeoJSONdata, {
+           												style: buildingToLayer,
+                         				  onEachFeature: onEachBuilding,
+                  								filter: buildingsToFilter
+                										//filter not needed buildings
+              									 }
+                               );
+              lastLayerAdded.addTo(map);
+            };
+
+            var buildingNamesToFilter = "";
+            var buildingConditionsToFilter = ""; 
+            // This is set by someone pressing the highlight button.
+            // If it's an empty string, then just draw everything.
+
+            function findBuilding() {
+              buildingNamesToFilter = document
+                .getElementById("findBuildingTextEntry")
+                .value;  // get any text from the input box.
+              addBuildings(); // add the buildings.
+              buildingNamesToFilter = "";  // reset so that "Show All Buildings" and "blgd_cond" works.
+               buildingConditionsToFilter = ""; 
+            }
+
+
+            function findBuildingCondition(e) {
+              
+              buildingConditionsToFilter = e.target.value;
+                  // get the building condition that was clicked on
+              addBuildings(); // add the buildings.
+              buildingNamesToFilter = "";  
+              buildingConditionsToFilter = ""; // reset so that "Show All Buildings" and the building search works.
+            }
+
+          var buildingGeoJSONdata; //store building GeoJSON data
+
+            // load GeoJSON from a file on the web
+            // $ is jQuery.
+          $.getJSON("https://raw.githubusercontent.com/UBCGeodata/ubc-geospatial-opendata/master/ubcv/locations/geojson/ubcv_buildings.geojson",
+                      function(data){
+
+          	      		buildingGeoJSONdata = data;
+
+          						document
+                          .getElementById("showAllBuildingsButton")
+                          .addEventListener("click", addBuildings);
+              					document
+                          .getElementById("findBuildingButton")
+                          .addEventListener("click", findBuilding);
+                                document
+                          .getElementById("bldg_cond")
+                          .addEventListener("change", findBuildingCondition);
+
+            					}
+            );
+    </script>
+  </body>
+</html>
