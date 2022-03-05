@@ -145,7 +145,7 @@
               addBuildings(); // add the buildings.
               buildingNamesToFilter = "";  // reset so that "Show All Buildings" and "blgd_cond" works.
                document
-                          .getElementById("bldg_cond").value = ""; 
+                          .getElementById("bldg_cond").value = ""; //to reset the select menu and indicate the new filter isn't cumulative
             }
 
 
@@ -155,8 +155,8 @@
                   // get the building condition that was clicked on
               addBuildings(); // add the buildings.
               document
-                .getElementById("findBuildingTextEntry").value=""; 
-              buildingConditionsToFilter = ""; // reset so that "Show All Buildings" and the building search works.
+                .getElementById("findBuildingTextEntry").value=""; //to clear the textbox and indicate the new filter isn't cumulative
+              buildingConditionsToFilter = ""; // reset so that "Show All Buildings" works.
             }
 
           var buildingGeoJSONdata; //store building GeoJSON data
