@@ -15,7 +15,7 @@
 	     We'll use it to retrieve data from the web. -->
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 
-  
+    
   </head>
   <body>
     <div id="mapid" style="width: 600px; height: 400px;"></div>
@@ -144,7 +144,8 @@
                 .value;  // get any text from the input box.
               addBuildings(); // add the buildings.
               buildingNamesToFilter = "";  // reset so that "Show All Buildings" and "blgd_cond" works.
-               buildingConditionsToFilter = ""; 
+               document
+                          .getElementById("bldg_cond").value = ""; 
             }
 
 
@@ -153,7 +154,8 @@
               buildingConditionsToFilter = e.target.value;
                   // get the building condition that was clicked on
               addBuildings(); // add the buildings.
-              buildingNamesToFilter = "";  
+              document
+                .getElementById("findBuildingTextEntry").value=""; 
               buildingConditionsToFilter = ""; // reset so that "Show All Buildings" and the building search works.
             }
 
