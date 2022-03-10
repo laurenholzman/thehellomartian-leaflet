@@ -14,6 +14,7 @@
     <!-- jQuery is a library that simplifies many things in JavaScript. 
 	     We'll use it to retrieve data from the web. -->
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://npmcdn.com/leaflet-geometryutil"></script>
   </head>
   <body>
     <div id="mapid" style="width: 600px; height: 400px;"></div>
@@ -39,154 +40,259 @@
         <option value="poor">Poor</option>
         <option value="critical">Critical</option>
       </select>
+      <span style="display:inline-block; width: 20px"></span>
+        <!-- creates a select menu with the options for building certification -->
+      <a font-size="8px"> Building Leed Certification: </a>
+      <select name="leedCert" id="leed">
+        <option value="">--select--</option>
+        <option value="bronze">Bronze</option>
+        <option value="silver">Silver</option>
+        <option value="gold">Gold</option>
+        <option value="platinum">Platinum</option>
+      </select>
+       <span style="display:inline-block; height: 20px"></span>
+      <div>
+        <span style="display:inline-block; height: 30px"></span>
+        
+        <input
+          style="width:240px"
+          type="text"
+          id="findDistanceTextEntry"
+          placeholder="distance buffer that doesn't work reliably"
+        />
+        <button id="distButton">Find</button>
+      </div>
+      
+    
     </div>
 
     <script>
+              var dist = 0;
+            var lastLayerAddedTemp = {};
+                          // Make a Leaflet map with L.map().
+                          // Store the map in the variable 'map'.
+                          // "mapid" is the 'id' of the DOM element to contain the map.
+                          var map = L.map('mapid',
+                                          {
+                            								center: [49.265637, -123.256113],
+                            								zoom: 15
+                          								}  // this object holds map options
+                                    );
 
-            // Make a Leaflet map with L.map().
-            // Store the map in the variable 'map'.
-            // "mapid" is the 'id' of the DOM element to contain the map.
-            var map = L.map('mapid',
-                            {
-              								center: [49.265637, -123.256113],
-              								zoom: 15
-            								}  // this object holds map options
-                      );
-
-          var topoTiles = L.tileLayer(
-              								'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-                              {
-          										maxZoom: 17,
-          										attribution: 'Basemap data: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Basemap style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-          									}
-          								).addTo(map);
-
-
-
-
-            var buildingOptions = [{ fillColor:'purple',color: 'black',weight:2,fillOpacity:0.8},{ fillColor:'green',color: 'black',weight:2,fillOpacity:0.8},{ fillColor:'yellow',color: 'black',weight:2,fillOpacity:0.8},{ fillColor:'red',color: 'black',weight:2,fillOpacity:0.8},{ fillColor:'black',color: 'black',weight:2,fillOpacity:0.8}
-
-          ];
-
-            var buildingFilteredOptions = {
-
-          };
-
-            function onEachBuilding(feature, layer) {
-               // does this building even have a property named NAME?
-               if (feature.properties && feature.properties.NAME ) {
-                  layer.bindTooltip(feature.properties.NAME);
-
-               }
-            }
-
-            function buildingToLayer(feature,layer) {
-              
-              
-      if (feature.properties && feature.properties.BLDG_CONDITION) {
-        if (feature.properties.BLDG_CONDITION.toLowerCase()=== "good") {
-          buildingOptionsToUse = buildingOptions[0]
-        } else if (feature.properties.BLDG_CONDITION.toLowerCase()=== "fair"){
-          buildingOptionsToUse = buildingOptions[1]
-        } else if (feature.properties.BLDG_CONDITION.toLowerCase()=== "poor"){
-          buildingOptionsToUse = buildingOptions[2]
-        } else {
-          buildingOptionsToUse = buildingOptions[3]
-        }
-      } else {buildingOptionsToUse = buildingOptions[4]}
-console.log(buildingOptionsToUse);
-              return
-                buildingOptionsToUse;
-
-            }
-
-            function buildingsToFilter (feature, layer) {
-              if(buildingNamesToFilter === "" && buildingConditionsToFilter === "" ) {
-
-                return true;
-               //draw everything when you don't have either of the two filters active
-              }
-              else if ((feature.properties && feature.properties.NAME) && buildingNamesToFilter !== "") {
-               // when you have a newly nonempty textbox (ie someone pressed "find" after changing the building condition)
-
-                return feature.properties.NAME.toLowerCase().includes(buildingNamesToFilter.toLowerCase());
-          		//ignore uppercase/lowercase differences.
-              }
-              else if ((feature.properties && feature.properties.BLDG_CONDITION) && buildingConditionsToFilter !== "") {
-
-               //when something on the dropdown menu is newly selected
-                return feature.properties.BLDG_CONDITION.toLowerCase()===buildingConditionsToFilter.toLowerCase();
-          		//ignore uppercase/lowercase differences.
-              } else {
-                return false;
-                //don't display bad entries
-              }
-            }
-
-          	var lastLayerAdded = {};
-
-            function addBuildings() {
-              if(map.hasLayer(lastLayerAdded)){  // reset the map layers if relevant.
-                map.removeLayer(lastLayerAdded);
-              }
-              
-              lastLayerAdded = L.geoJSON(buildingGeoJSONdata, {
-           												style: buildingToLayer,
-                         				  onEachFeature: onEachBuilding,
-                  								filter: buildingsToFilter
-                										//filter not needed buildings
-              									 }
-                               );
-              lastLayerAdded.addTo(map);
-            };
-
-            var buildingNamesToFilter = "";
-            var buildingConditionsToFilter = "";
-            // This is set by someone pressing the highlight button.
-            // If it's an empty string, then just draw everything.
-
-            function findBuilding() {
-              buildingNamesToFilter = document
-                .getElementById("findBuildingTextEntry")
-                .value;  // get any text from the input box.
-              addBuildings(); // add the buildings.
-              buildingNamesToFilter = "";  // reset so that "Show All Buildings" and "blgd_cond" works.
-               document
-                          .getElementById("bldg_cond").value = ""; //to reset the select menu and indicate the new filter isn't cumulative
-            }
+                        var topoTiles = L.tileLayer(
+                            								'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+                                            {
+                        										maxZoom: 17,
+                        										attribution: 'Basemap data: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Basemap style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+                        									}
+                        								).addTo(map);
 
 
-            function findBuildingCondition(e) {
 
-              buildingConditionsToFilter = e.target.value;
-                  // get the building condition that was clicked on
-              addBuildings(); // add the buildings.
-              document
-                .getElementById("findBuildingTextEntry").value=""; //to clear the textbox and indicate the new filter isn't cumulative
-              buildingConditionsToFilter = ""; // reset so that "Show All Buildings" works.
-            }
 
-          var buildingGeoJSONdata; //store building GeoJSON data
+                          var buildingOptions = [{ fillColor:'blue',color: 'blue',weight:2,fillOpacity:0.8},{ fillColor:'green',color: 'green',weight:2,fillOpacity:0.8},{ fillColor:'yellow',color: 'yellow',weight:2,fillOpacity:0.8},{ fillColor:'red',color: 'red',weight:2,fillOpacity:0.8},{ fillColor:'pink',color: 'pink',weight:2,fillOpacity:0.8}
 
-            // load GeoJSON from a file on the web
-            // $ is jQuery.
-          $.getJSON("https://raw.githubusercontent.com/UBCGeodata/ubc-geospatial-opendata/master/ubcv/locations/geojson/ubcv_buildings.geojson",
-                      function(data){
+                        ];
 
-          	      		buildingGeoJSONdata = data;
 
-          						document
-                          .getElementById("showAllBuildingsButton")
-                          .addEventListener("click", addBuildings);
-              					document
-                          .getElementById("findBuildingButton")
-                          .addEventListener("click", findBuilding);
-                                document
-                          .getElementById("bldg_cond")
-                          .addEventListener("change", findBuildingCondition);
 
-            					}
-            );
+                          function onEachBuilding(feature, layer) {
+                             // does this building even have a property named NAME?
+                             if (feature.properties && feature.properties.NAME ) {
+                                layer.bindTooltip(feature.properties.NAME);
+
+                             }
+                            layer.resetStyle
+                          }
+
+                        function buildingToLayer(feature,layer) {
+
+
+                    if (feature.properties && feature.properties.BLDG_CONDITION) {
+                      if (feature.properties.BLDG_CONDITION.toLowerCase()=== "good") {
+                        return buildingOptions[0];
+                      } else if (feature.properties.BLDG_CONDITION.toLowerCase()=== "fair"){
+                        return buildingOptions[1];
+                      } else if (feature.properties.BLDG_CONDITION.toLowerCase()=== "poor"){
+                        return buildingOptions[2];
+                      } else {
+                        return buildingOptions[3];
+                      }
+                    } else {return buildingOptions[4]; }
+
+
+
+                          }
+
+                      function buildingsToFilter (feature, layer,latlng) {
+                            if(buildingNamesToFilter === "" && buildingConditionsToFilter === "" && !dist && buildingCertsToFilter === "") {
+
+                              return true;
+                             //draw everything when you don't have either of the two filters active
+                            } else if (feature.properties && dist) { coords = []; //define an array to store coordinates
+L.geoJSON(lastLayerAddedTemp.toGeoJSON(), { 
+   onEachFeature: function (feat) {
+          if (feat.geometry.coordinates) {  coords.push(feat.geometry.coordinates)
+                                            }
+}});
+  for (var i=1; i< coords[0][0].length; i++){ 
+    pair = coords[0][0];
+                          if (latlng)  {
+                            latlong0 = L.latLng(pair[1],pair[0]);
+                            console.log(latlng)
+                            latlong = feature.geometry.coordinates;
+                  polygon = L.polygon(latlong); 
+                            //console.log(map.distance(latlong0,polygon.getBounds().getCenter()) < dist);
+ if(map.distance(latlong0,polygon.getBounds().getCenter()) < dist) {
+              return true; break} 
+  }}
+                       
+         ;  return false;                  
+
+                            } else if ((feature.properties && feature.properties.NAME) && buildingNamesToFilter !== "") {
+
+                             // when you have a newly nonempty textbox (ie someone pressed "find" after changing the building condition)
+
+                              return feature.properties.NAME.toLowerCase().includes(buildingNamesToFilter.toLowerCase());
+                        		//ignore uppercase/lowercase differences.
+                            }
+                            else if ((feature.properties && feature.properties.BLDG_CONDITION) && buildingConditionsToFilter !== "") {
+
+                             //when something on the dropdown menu is newly selected
+                              
+                              return feature.properties.BLDG_CONDITION.toLowerCase()===buildingConditionsToFilter.toLowerCase();
+                        		//ignore uppercase/lowercase differences.
+                            }else if ((feature.properties && feature.properties.GREEN_STATUS) && buildingCertsToFilter !== "") {
+
+                             //when something on the dropdown menu is newly selected
+                             console.log(feature.properties.GREEN_STATUS.toLowerCase())
+                              return feature.properties.GREEN_STATUS.toLowerCase().includes(buildingCertsToFilter.toLowerCase());
+                        		//ignore uppercase/lowercase differences.
+                            } else {
+                              return false;
+                              //don't display bad entries
+                            }
+                          }
+
+                        	var lastLayerAdded = {};
+
+
+                          function addBuildings() {
+                            if(map.hasLayer(lastLayerAdded)){  // reset the map layers if relevant.
+                              lastLayerAddedTemp = lastLayerAdded;
+                              map.removeLayer(lastLayerAdded);
+                            }
+
+                            lastLayerAdded = L.geoJSON(buildingGeoJSONdata, {
+                         												style: buildingToLayer,
+
+                                       				  onEachFeature: onEachBuilding,
+                                								filter: buildingsToFilter
+                              										//filter not needed buildings
+                            									 }
+                                             );
+                            lastLayerAdded.addTo(map);
+                            lastLayerAddedTemp = lastLayerAdded;
+                          };
+
+                          var buildingNamesToFilter = "";
+                          var buildingConditionsToFilter = "";
+                        var buildingCertsToFilter = "";
+                          // This is set by someone pressing the highlight button.
+                          // If it's an empty string, then just draw everything.
+
+                          function findBuilding() {
+                            buildingNamesToFilter = document
+                              .getElementById("findBuildingTextEntry")
+                              .value;  // get any text from the input box.
+                            addBuildings(); // add the buildings.
+                            buildingNamesToFilter = "";  // reset so that "Show All Buildings" and "blgd_cond" works.
+                             document
+                                        .getElementById("bldg_cond").value = ""; //to reset the select menu and indicate the new filter isn't cumulative
+                             document
+                                        .getElementById("findDistanceTextEntry").value = "";
+                            dist = 0;//to reset the distance menu and indicate the new filter isn't cumulative
+                            document
+                                        .getElementById("leed").value = "";
+                          }
+
+                         
+                          function findBuildingCondition(e) {
+
+                            buildingConditionsToFilter = e.target.value;
+                                // get the building condition that was clicked on
+                            addBuildings(); // add the buildings.
+                            document
+                              .getElementById("findBuildingTextEntry").value=""; //to clear the textbox and indicate the new filter isn't cumulative
+                            buildingConditionsToFilter = ""; // reset so that "Show All Buildings" works.
+                            document
+                                        .getElementById("findDistanceTextEntry").value = "";
+                            dist = 0;//to reset the distance menu and indicate the new filter isn't cumulative
+                            document
+                                        .getElementById("leed").value = "";
+                          }
+                        
+                        function findBuildingCert(e) {
+
+                            buildingCertsToFilter = e.target.value;
+                                // get the building condition that was clicked on
+                            addBuildings(); // add the buildings.
+                            document
+                              .getElementById("findBuildingTextEntry").value=""; //to clear the textbox and indicate the new filter isn't cumulative
+                          document
+                                        .getElementById("bldg_cond").value = ""; //to reset the select menu and indicate the new filter isn't cumulative
+                            buildingCertsToFilter = ""; // reset so that "Show All Buildings" works.
+                            document
+                                        .getElementById("findDistanceTextEntry").value = "";
+                            dist = 0;//to reset the distance menu and indicate the new filter isn't cumulative
+                          }
+
+
+
+                     function findBuildingsWithin() {
+                       dist = parseFloat(document
+                              .getElementById("findDistanceTextEntry")
+                              .value);
+                       if (isNaN(dist)) {
+                         dist = false; // to deliniate if there is no number entry
+                          document.getElementById("findDistanceTextEntry").value = "";
+                       }
+
+                            addBuildings(); // add the buildings.
+
+                            buildingNamesToFilter = "";  // reset so that "Show All Buildings" works;
+document
+                                        .getElementById("leed").value = "";
+                          }
+
+                        var buildingGeoJSONdata; //store building GeoJSON data
+
+                          // load GeoJSON from a file on the web
+                          // $ is jQuery.
+                        $.getJSON("https://raw.githubusercontent.com/UBCGeodata/ubc-geospatial-opendata/master/ubcv/locations/geojson/ubcv_buildings.geojson",
+                                    function(data){
+
+                        	      		buildingGeoJSONdata = data;
+
+                        						document
+                                        .getElementById("showAllBuildingsButton")
+                                        .addEventListener("click", addBuildings);
+                            					document
+                                        .getElementById("findBuildingButton")
+                                        .addEventListener("click", findBuilding);
+                                              document
+                                        .getElementById("bldg_cond")
+                                        .addEventListener("change", findBuildingCondition);
+                                              document
+                                        .getElementById("distButton")
+                                        .addEventListener("click", findBuildingsWithin);
+                          document
+                                        .getElementById("leed")
+                                        .addEventListener("change", findBuildingCert);
+
+
+                          					}
+                          );
     </script>
   </body>
 </html>
